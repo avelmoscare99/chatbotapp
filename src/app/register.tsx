@@ -25,13 +25,14 @@ function friendlyError(err: unknown): string {
 
 export default function RegisterScreen() {
   const theme = useTheme();
-  const { user, authReady, signUpWithEmail } = useAuth();
+  const { user, authReady, signUpWithEmail, signInWithGoogle } = useAuth();
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   async function onSubmit() {
     setError('');
@@ -43,6 +44,21 @@ export default function RegisterScreen() {
       setError(friendlyError(err));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function onGoogleSubmit() {
+    setError('');
+    setIsGoogleSubmitting(true);
+    try {
+      const signedInUser = await signInWithGoogle();
+      if (signedInUser) {
+        router.replace('/chats');
+      }
+    } catch (err) {
+      setError(friendlyError(err));
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   }
 
@@ -104,6 +120,18 @@ export default function RegisterScreen() {
               {isSubmitting ? 'Creating account…' : 'Create account'}
             </ThemedText>
           </Pressable>
+
+          <Pressable
+            onPress={onGoogleSubmit}
+            disabled={isGoogleSubmitting}
+            style={({ pressed }) => [
+              styles.googleButton,
+              { borderColor: theme.backgroundSelected, opacity: pressed || isGoogleSubmitting ? 0.6 : 1 },
+            ]}>
+            <ThemedText type="smallBold">
+              {isGoogleSubmitting ? 'Signing in…' : 'Continue with Google'}
+            </ThemedText>
+          </Pressable>
         </ThemedView>
 
         <ThemedView style={styles.footerRow}>
@@ -156,8 +184,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     alignItems: 'center',
   },
+  googleButton: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.three,
+    alignItems: 'center',
+  },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
   },
 });

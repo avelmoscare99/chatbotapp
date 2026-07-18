@@ -26,12 +26,13 @@ function friendlyError(err: unknown): string {
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const { user, authReady, signInWithEmail } = useAuth();
+  const { user, authReady, signInWithEmail, signInWithGoogle } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   async function onSubmit() {
     setError('');
@@ -43,6 +44,21 @@ export default function LoginScreen() {
       setError(friendlyError(err));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function onGoogleSubmit() {
+    setError('');
+    setIsGoogleSubmitting(true);
+    try {
+      const signedInUser = await signInWithGoogle();
+      if (signedInUser) {
+        router.replace('/chats');
+      }
+    } catch (err) {
+      setError(friendlyError(err));
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   }
 
@@ -94,6 +110,18 @@ export default function LoginScreen() {
             ]}>
             <ThemedText themeColor="background" type="smallBold">
               {isSubmitting ? 'Signing in…' : 'Sign in'}
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            onPress={onGoogleSubmit}
+            disabled={isGoogleSubmitting}
+            style={({ pressed }) => [
+              styles.googleButton,
+              { borderColor: theme.backgroundSelected, opacity: pressed || isGoogleSubmitting ? 0.6 : 1 },
+            ]}>
+            <ThemedText type="smallBold">
+              {isGoogleSubmitting ? 'Signing in…' : 'Continue with Google'}
             </ThemedText>
           </Pressable>
         </ThemedView>
@@ -148,8 +176,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     alignItems: 'center',
   },
+  googleButton: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.three,
+    alignItems: 'center',
+  },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
   },
 });

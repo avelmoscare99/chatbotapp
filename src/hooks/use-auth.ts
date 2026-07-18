@@ -1,9 +1,12 @@
 import {
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
 } from '@firebase/auth';
+import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useContext } from 'react';
 
@@ -37,9 +40,26 @@ export function useAuth() {
     return credential.user;
   }
 
+  async function signInWithGoogle() {
+    await GoogleSignin.hasPlayServices();
+    const response = await GoogleSignin.signIn();
+    if (!isSuccessResponse(response) || !response.data.idToken) {
+      return null;
+    }
+    const googleCredential = GoogleAuthProvider.credential(response.data.idToken);
+    const credential = await signInWithCredential(auth, googleCredential);
+    await upsertUserProfile(credential.user.uid, {
+      displayName: credential.user.displayName,
+      email: credential.user.email,
+      photoURL: credential.user.photoURL,
+      createdAt: serverTimestamp(),
+    });
+    return credential.user;
+  }
+
   async function signOutUser() {
     await signOut(auth);
   }
 
-  return { user, authReady, signUpWithEmail, signInWithEmail, signOutUser };
+  return { user, authReady, signUpWithEmail, signInWithEmail, signInWithGoogle, signOutUser };
 }
